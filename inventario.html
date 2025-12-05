@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Compras y Stock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px 0;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background-color: #f8f9fa;
+            border-left-color: #3498db;
+        }
+        
+        .nav-item.active {
+            background-color: #e3f2fd;
+            border-left-color: #2196f3;
+            color: #1976d2;
+        }
+        
+        .nav-item i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .module-content {
+            display: none;
+        }
+        
+        .module-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .card-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .card-subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background: #219a52;
+        }
+        
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-top: 20px;
+        }
+        
+        .data-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .col-2 {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏪 Sistema de Control de Compras y Stock</h1>
+        <p>Gestión integral de proveedores, productos y inventario</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="nav-item active" onclick="showModule('dashboard')">
+                <i>📊</i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item" onclick="showModule('proveedores')">
+                <i>🏢</i>
+                <span>Proveedores</span>
+            </div>
+            <div class="nav-item" onclick="showModule('productos')">
+                <i>📦</i>
+                <span>Productos</span>
+            </div>
+            <div class="nav-item" onclick="showModule('medidas')">
+                <i>📏</i>
+                <span>Medidas</span>
+            </div>
+            <div class="nav-item" onclick="showModule('mapeo')">
+                <i>🔗</i>
+                <span>Mapeo Productos</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- DASHBOARD MODULE -->
+            <div id="dashboard" class="module-content active">
+                <h2 class="section-title">Dashboard Principal</h2>
+                
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: linear-gradient(45deg, #3498db, #2980b9);">🏢</div>
+                            <div class="card-title">Proveedores</div>
+                        </div>
+                        <div class="card-value" id="total-proveedores">0</div>
+                        <div class="card-subtitle">Total registrados</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">📦</div>
+                            <div class="card-title">Productos</div>
+                        </div>
+                        <div class="card-value" id="total-productos">0</div>
+                        <div class="card-subtitle">En inventario</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: linear-gradient(45deg, #f39c12, #e67e22);">📏</div>
+                            <div class="card-title">Medidas</div>
+                        </div>
+                        <div class="card-value" id="total-medidas">0</div>
+                        <div class="card-subtitle">Unidades definidas</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: linear-gradient(45deg, #27ae60, #219a52);">🔗</div>
+                            <div class="card-title">Mapeos</div>
+                        </div>
+                        <div class="card-value" id="total-mapeos">0</div>
+                        <div class="card-subtitle">Productos mapeados</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">Resumen del Sistema</h3>
+                    <p>Bienvenido al sistema de control de compras y stock. Desde aquí puedes gestionar:</p>
+                    <ul style="margin: 15px 0; padding-left: 20px;">
+                        <li>Registro y gestión de proveedores</li>
+                        <li>Catálogo de productos de tu inventario</li>
+                        <li>Unidades de medida disponibles</li>
+                        <li>Mapeo de productos de proveedores a tu inventario común</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- PROVEEDORES MODULE -->
+            <div id="proveedores" class="module-content">
+                <h2 class="section-title">Gestión de Proveedores</h2>
+                
+                <div class="form-container">
+                    <h3 style="margin-bottom: 20px;">Registrar Nuevo Proveedor</h3>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Nombre del Proveedor *</label>
+                                <input type="text" id="proveedor-nombre" placeholder="Ej: Distribuidora ABC">
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>RIF/NIT</label>
+                                <input type="text" id="proveedor-rif" placeholder="Ej: J-12345678-0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="tel" id="proveedor-telefono" placeholder="Ej: +58 412-1234567">
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="proveedor-email" placeholder="contacto@proveedor.com">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <textarea id="proveedor-direccion" placeholder="Dirección completa del proveedor"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notas Adicionales</label>
+                        <textarea id="proveedor-notas" placeholder="Información adicional sobre el proveedor"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="registrarProveedor()">
+                        ➕ Registrar Proveedor
+                    </button>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>RIF/NIT</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-proveedores">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #7f8c8d;">
+                                No hay proveedores registrados aún
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- PRODUCTOS MODULE -->
+            <div id="productos" class="module-content">
+                <h2 class="section-title">Catálogo de Productos</h2>
+                
+                <div class="form-container">
+                    <h3 style="margin-bottom: 20px;">Registrar Nuevo Producto</h3>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Nombre del Producto *</label>
+                                <input type="text" id="producto-nombre" placeholder="Ej: Arroz Blanco Premium">
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Código/SKU</label>
+                                <input type="text" id="producto-codigo" placeholder="Ej: ARR-001">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Categoría</label>
+                                <select id="producto-categoria">
+                                    <option value="">Seleccionar categoría</option>
+                                    <option value="alimentos">Alimentos</option>
+                                    <option value="bebidas">Bebidas</option>
+                                    <option value="limpieza">Limpieza</option>
+                                    <option value="aseo">Aseo Personal</option>
+                                    <option value="otros">Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Unidad de Medida *</label>
+                                <select id="producto-medida">
+                                    <option value="">Seleccionar medida</option>
+                                    <option value="kg">Kilogramos (kg)</option>
+                                    <option value="g">Gramos (g)</option>
+                                    <option value="l">Litros (l)</option>
+                                    <option value="ml">Mililitros (ml)</option>
+                                    <option value="unidad">Unidad</option>
+                                    <option value="caja">Caja</option>
+                                    <option value="paquete">Paquete</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea id="producto-descripcion" placeholder="Descripción detallada del producto"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="registrarProducto()">
+                        ➕ Registrar Producto
+                    </button>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Unidad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-productos">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #7f8c8d;">
+                                No hay productos registrados aún
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- MEDIDAS MODULE -->
+            <div id="medidas" class="module-content">
+                <h2 class="section-title">Unidades de Medida</h2>
+                
+                <div class="form-container">
+                    <h3 style="margin-bottom: 20px;">Registrar Nueva Medida</h3>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Nombre de la Unidad *</label>
+                                <input type="text" id="medida-nombre" placeholder="Ej: Kilogramos">
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Símbolo/Abreviatura *</label>
+                                <input type="text" id="medida-simbolo" placeholder="Ej: kg">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tipo de Medida</label>
+                        <select id="medida-tipo">
+                            <option value="">Seleccionar tipo</option>
+                            <option value="peso">Peso</option>
+                            <option value="volumen">Volumen</option>
+                            <option value="longitud">Longitud</option>
+                            <option value="cantidad">Cantidad</option>
+                            <option value="area">Área</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea id="medida-descripcion" placeholder="Descripción o notas sobre esta unidad de medida"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="registrarMedida()">
+                        ➕ Registrar Medida
+                    </button>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Símbolo</th>
+                            <th>Tipo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-medidas">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #7f8c8d;">
+                                No hay medidas registradas aún
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- MAPEO MODULE -->
+            <div id="mapeo" class="module-content">
+                <h2 class="section-title">Mapeo de Productos</h2>
+                <p style="margin-bottom: 20px; color: #7f8c8d;">
+                    Aquí puedes asociar los nombres de productos que usan tus proveedores con los productos de tu inventario común.
+                </p>
+                
+                <div class="form-container">
+                    <h3 style="margin-bottom: 20px;">Crear Nuevo Mapeo</h3>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Proveedor *</label>
+                                <select id="mapeo-proveedor">
+                                    <option value="">Seleccionar proveedor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Producto en tu Inventario *</label>
+                                <select id="mapeo-producto-inventario">
+                                    <option value="">Seleccionar producto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nombre que usa el Proveedor *</label>
+                        <input type="text" id="mapeo-nombre-proveedor" placeholder="Ej: Arroz Diana 1kg">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Código del Proveedor</label>
+                                <input type="text" id="mapeo-codigo-proveedor" placeholder="Código que usa el proveedor">
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <div class="form-group">
+                                <label>Factor de Conversión</label>
+                                <input type="number" step="0.01" id="mapeo-factor" placeholder="1.00" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notas del Mapeo</label>
+                        <textarea id="mapeo-notas" placeholder="Información adicional sobre este mapeo"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="crearMapeo()">
+                        🔗 Crear Mapeo
+                    </button>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Proveedor</th>
+                            <th>Nombre del Proveedor</th>
+                            <th>Producto Inventario</th>
+                            <th>Factor</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-mapeos">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #7f8c8d;">
+                                No hay mapeos creados aún
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales para almacenar datos
+        let proveedores = [];
+        let productos = [];
+        let medidas = [];
+        let mapeos = [];
+        let nextProvedorId = 1;
+        let nextProductoId = 1;
+        let nextMedidaId = 1;
+        let nextMapeoId = 1;
+        
+        // Función para cambiar entre módulos
+        function showModule(moduleId) {
+            // Ocultar todos los módulos
+            document.querySelectorAll('.module-content').forEach(module => {
+                module.classList.remove('active');
+            });
+            
+            // Remover clase active de todos los nav-items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Mostrar el módulo seleccionado
+            document.getElementById(moduleId).classList.add('active');
+            
+            // Activar el nav-item correspondiente
+            event.target.closest('.nav-item').classList.add('active');
+        }
+        
+        // Función para registrar proveedor
+        function registrarProveedor() {
+            const nombre = document.getElementById('proveedor-nombre').value.trim();
+            const rif = document.getElementById('proveedor-rif').value.trim();
+            const telefono = document.getElementById('proveedor-telefono').value.trim();
+            const email = document.getElementById('proveedor-email').value.trim();
+            const direccion = document.getElementById('proveedor-direccion').value.trim();
+            const notas = document.getElementById('proveedor-notas').value.trim();
+            
+            if (!nombre) {
+                alert('Por favor, ingresa el nombre del proveedor');
+                return;
+            }
+            
+            const proveedor = {
+                id: nextProvedorId++,
+                nombre,
+                rif,
+                telefono,
+                email,
+                direccion,
+                notas,
+                fechaRegistro: new Date().toLocaleDateString()
+            };
+            
+            proveedores.push(proveedor);
+            actualizarTablaProveedores();
+            actualizarSelectProveedores();
+            actualizarDashboard();
+            limpiarFormularioProveedor();
+            
+            alert('Proveedor registrado exitosamente');
+        }
+        
+        // Función para actualizar tabla de proveedores
+        function actualizarTablaProveedores() {
+            const tbody = document.getElementById('tabla-proveedores');
+            
+            if (proveedores.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #7f8c8d;">No hay proveedores registrados aún</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = proveedores.map(proveedor => `
+                <tr>
+                    <td>${proveedor.id}</td>
+                    <td>${proveedor.nombre}</td>
+                    <td>${proveedor.rif}</td>
+                    <td>${proveedor.telefono}</td>
+                    <td>${proveedor.email}</td>
+                    <td>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px;" onclick="editarProveedor(${proveedor.id})">✏️</button>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px; background: #e74c3c;" onclick="eliminarProveedor(${proveedor.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Función para limpiar formulario de proveedor
+        function limpiarFormularioProveedor() {
+            document.getElementById('proveedor-nombre').value = '';
+            document.getElementById('proveedor-rif').value = '';
+            document.getElementById('proveedor-telefono').value = '';
+            document.getElementById('proveedor-email').value = '';
+            document.getElementById('proveedor-direccion').value = '';
+            document.getElementById('proveedor-notas').value = '';
+        }
+        
+        // Función para registrar producto
+        function registrarProducto() {
+            const nombre = document.getElementById('producto-nombre').value.trim();
+            const codigo = document.getElementById('producto-codigo').value.trim();
+            const categoria = document.getElementById('producto-categoria').value;
+            const medida = document.getElementById('producto-medida').value;
+            const descripcion = document.getElementById('producto-descripcion').value.trim();
+            
+            if (!nombre || !medida) {
+                alert('Por favor, completa los campos obligatorios (Nombre y Unidad de Medida)');
+                return;
+            }
+            
+            const producto = {
+                id: nextProductoId++,
+                nombre,
+                codigo: codigo || `PROD-${nextProductoId - 1}`,
+                categoria,
+                medida,
+                descripcion,
+                fechaRegistro: new Date().toLocaleDateString()
+            };
+            
+            productos.push(producto);
+            actualizarTablaProductos();
+            actualizarSelectProductos();
+            actualizarDashboard();
+            limpiarFormularioProducto();
+            
+            alert('Producto registrado exitosamente');
+        }
+        
+        // Función para actualizar tabla de productos
+        function actualizarTablaProductos() {
+            const tbody = document.getElementById('tabla-productos');
+            
+            if (productos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #7f8c8d;">No hay productos registrados aún</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = productos.map(producto => `
+                <tr>
+                    <td>${producto.id}</td>
+                    <td>${producto.codigo}</td>
+                    <td>${producto.nombre}</td>
+                    <td>${producto.categoria || '-'}</td>
+                    <td>${producto.medida}</td>
+                    <td>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px;" onclick="editarProducto(${producto.id})">✏️</button>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px; background: #e74c3c;" onclick="eliminarProducto(${producto.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Función para limpiar formulario de producto
+        function limpiarFormularioProducto() {
+            document.getElementById('producto-nombre').value = '';
+            document.getElementById('producto-codigo').value = '';
+            document.getElementById('producto-categoria').value = '';
+            document.getElementById('producto-medida').value = '';
+            document.getElementById('producto-descripcion').value = '';
+        }
+        
+        // Función para registrar medida
+        function registrarMedida() {
+            const nombre = document.getElementById('medida-nombre').value.trim();
+            const simbolo = document.getElementById('medida-simbolo').value.trim();
+            const tipo = document.getElementById('medida-tipo').value;
+            const descripcion = document.getElementById('medida-descripcion').value.trim();
+            
+            if (!nombre || !simbolo) {
+                alert('Por favor, completa los campos obligatorios (Nombre y Símbolo)');
+                return;
+            }
+            
+            const medida = {
+                id: nextMedidaId++,
+                nombre,
+                simbolo,
+                tipo,
+                descripcion,
+                fechaRegistro: new Date().toLocaleDateString()
+            };
+            
+            medidas.push(medida);
+            actualizarTablaMedidas();
+            actualizarDashboard();
+            limpiarFormularioMedida();
+            
+            // Agregar nueva medida al select de productos
+            const selectMedida = document.getElementById('producto-medida');
+            const option = document.createElement('option');
+            option.value = simbolo;
+            option.textContent = `${nombre} (${simbolo})`;
+            selectMedida.appendChild(option);
+            
+            alert('Medida registrada exitosamente');
+        }
+        
+        // Función para actualizar tabla de medidas
+        function actualizarTablaMedidas() {
+            const tbody = document.getElementById('tabla-medidas');
+            
+            if (medidas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #7f8c8d;">No hay medidas registradas aún</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = medidas.map(medida => `
+                <tr>
+                    <td>${medida.id}</td>
+                    <td>${medida.nombre}</td>
+                    <td>${medida.simbolo}</td>
+                    <td>${medida.tipo || '-'}</td>
+                    <td>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px;" onclick="editarMedida(${medida.id})">✏️</button>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px; background: #e74c3c;" onclick="eliminarMedida(${medida.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Función para limpiar formulario de medida
+        function limpiarFormularioMedida() {
+            document.getElementById('medida-nombre').value = '';
+            document.getElementById('medida-simbolo').value = '';
+            document.getElementById('medida-tipo').value = '';
+            document.getElementById('medida-descripcion').value = '';
+        }
+        
+        // Función para crear mapeo
+        function crearMapeo() {
+            const proveedorId = document.getElementById('mapeo-proveedor').value;
+            const productoId = document.getElementById('mapeo-producto-inventario').value;
+            const nombreProveedor = document.getElementById('mapeo-nombre-proveedor').value.trim();
+            const codigoProveedor = document.getElementById('mapeo-codigo-proveedor').value.trim();
+            const factor = parseFloat(document.getElementById('mapeo-factor').value) || 1;
+            const notas = document.getElementById('mapeo-notas').value.trim();
+            
+            if (!proveedorId || !productoId || !nombreProveedor) {
+                alert('Por favor, completa los campos obligatorios');
+                return;
+            }
+            
+            const proveedor = proveedores.find(p => p.id == proveedorId);
+            const producto = productos.find(p => p.id == productoId);
+            
+            const mapeo = {
+                id: nextMapeoId++,
+                proveedorId,
+                proveedorNombre: proveedor.nombre,
+                productoId,
+                productoNombre: producto.nombre,
+                nombreProveedor,
+                codigoProveedor,
+                factor,
+                notas,
+                fechaRegistro: new Date().toLocaleDateString()
+            };
+            
+            mapeos.push(mapeo);
+            actualizarTablaMapeos();
+            actualizarDashboard();
+            limpiarFormularioMapeo();
+            
+            alert('Mapeo creado exitosamente');
+        }
+        
+        // Función para actualizar tabla de mapeos
+        function actualizarTablaMapeos() {
+            const tbody = document.getElementById('tabla-mapeos');
+            
+            if (mapeos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #7f8c8d;">No hay mapeos creados aún</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = mapeos.map(mapeo => `
+                <tr>
+                    <td>${mapeo.id}</td>
+                    <td>${mapeo.proveedorNombre}</td>
+                    <td>${mapeo.nombreProveedor}</td>
+                    <td>${mapeo.productoNombre}</td>
+                    <td>${mapeo.factor}</td>
+                    <td>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px;" onclick="editarMapeo(${mapeo.id})">✏️</button>
+                        <button class="btn" style="font-size: 12px; padding: 5px 10px; background: #e74c3c;" onclick="eliminarMapeo(${mapeo.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Función para limpiar formulario de mapeo
+        function limpiarFormularioMapeo() {
+            document.getElementById('mapeo-proveedor').value = '';
+            document.getElementById('mapeo-producto-inventario').value = '';
+            document.getElementById('mapeo-nombre-proveedor').value = '';
+            document.getElementById('mapeo-codigo-proveedor').value = '';
+            document.getElementById('mapeo-factor').value = '1';
+            document.getElementById('mapeo-notas').value = '';
+        }
+        
+        // Función para actualizar selects
+        function actualizarSelectProveedores() {
+            const select = document.getElementById('mapeo-proveedor');
+            select.innerHTML = '<option value="">Seleccionar proveedor</option>';
+            
+            proveedores.forEach(proveedor => {
+                const option = document.createElement('option');
+                option.value = proveedor.id;
+                option.textContent = proveedor.nombre;
+                select.appendChild(option);
+            });
+        }
+        
+        function actualizarSelectProductos() {
+            const select = document.getElementById('mapeo-producto-inventario');
+            select.innerHTML = '<option value="">Seleccionar producto</option>';
+            
+            productos.forEach(producto => {
+                const option = document.createElement('option');
+                option.value = producto.id;
+                option.textContent = `${producto.nombre} (${producto.codigo})`;
+                select.appendChild(option);
+            });
+        }
+        
+        // Función para actualizar dashboard
+        function actualizarDashboard() {
+            document.getElementById('total-proveedores').textContent = proveedores.length;
+            document.getElementById('total-productos').textContent = productos.length;
+            document.getElementById('total-medidas').textContent = medidas.length;
+            document.getElementById('total-mapeos').textContent = mapeos.length;
+        }
+        
+        // Funciones placeholder para editar y eliminar
+        function editarProveedor(id) {
+            alert('Función de edición en desarrollo');
+        }
+        
+        function eliminarProveedor(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este proveedor?')) {
+                proveedores = proveedores.filter(p => p.id !== id);
+                actualizarTablaProveedores();
+                actualizarSelectProveedores();
+                actualizarDashboard();
+            }
+        }
+        
+        function editarProducto(id) {
+            alert('Función de edición en desarrollo');
+        }
+        
+        function eliminarProducto(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                actualizarTablaProductos();
+                actualizarSelectProductos();
+                actualizarDashboard();
+            }
+        }
+        
+        function editarMedida(id) {
+            alert('Función de edición en desarrollo');
+        }
+        
+        function eliminarMedida(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta medida?')) {
+                medidas = medidas.filter(m => m.id !== id);
+                actualizarTablaMedidas();
+                actualizarDashboard();
+            }
+        }
+        
+        function editarMapeo(id) {
+            alert('Función de edición en desarrollo');
+        }
+        
+        function eliminarMapeo(id) {
+            if (confirm('¿Estás seguro de que quieres eliminar este mapeo?')) {
+                mapeos = mapeos.filter(m => m.id !== id);
+                actualizarTablaMapeos();
+                actualizarDashboard();
+            }
+        }
+        
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            actualizarDashboard();
+        });
+    </script>
+</body>
+</html>

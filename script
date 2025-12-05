@@ -1,0 +1,221 @@
+-- Crear base de datos para el sistema de inventario
+DROP DATABASE IF EXISTS inventario_db;
+CREATE DATABASE inventario_db;
+USE inventario_db;
+
+-- Tabla de medidas/unidades
+CREATE TABLE medidas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    simbolo VARCHAR(10) NOT NULL UNIQUE,
+    tipo ENUM('peso', 'volumen', 'longitud', 'cantidad', 'area', 'otros') DEFAULT 'otros',
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Tabla de proveedores
+CREATE TABLE proveedores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    rif VARCHAR(50),
+    telefono VARCHAR(20),
+    email VARCHAR(255),
+    direccion TEXT,
+    notas TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre),
+    INDEX idx_rif (rif)
+);
+
+-- Tabla de productos (tu inventario común)
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    codigo VARCHAR(50) UNIQUE,
+    categoria ENUM('alimentos', 'bebidas', 'limpieza', 'aseo', 'otros') DEFAULT 'otros',
+    medida_simbolo VARCHAR(10) NOT NULL,
+    descripcion TEXT,
+    precio_referencia DECIMAL(10,2) DEFAULT 0.00,
+    stock_minimo DECIMAL(10,2) DEFAULT 0.00,
+    stock_actual DECIMAL(10,2) DEFAULT 0.00,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (medida_simbolo) REFERENCES medidas(simbolo) ON UPDATE CASCADE,
+    INDEX idx_nombre (nombre),
+    INDEX idx_codigo (codigo),
+    INDEX idx_categoria (categoria)
+);
+
+-- Tabla de mapeos (relación proveedor-producto)
+CREATE TABLE mapeos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    proveedor_id INT NOT NULL,
+    producto_id INT NOT NULL,
+    nombre_proveedor VARCHAR(255) NOT NULL,
+    codigo_proveedor VARCHAR(100),
+    factor_conversion DECIMAL(10,4) DEFAULT 1.0000,
+    precio_ultima_compra DECIMAL(10,2) DEFAULT 0.00,
+    fecha_ultima_compra DATE NULL,
+    notas TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (proveedor_id) REFERENCES proveedores(id) ON DELETE CASCADE,
+    FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_mapeo (proveedor_id, nombre_proveedor),
+    INDEX idx_proveedor (proveedor_id),
+    INDEX idx_producto (producto_id)
+);
+
+-- Tabla de movimientos de stock
+CREATE TABLE movimientos_stock (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    producto_id INT NOT NULL,
+    tipo_movimiento ENUM('entrada', 'salida', 'ajuste') NOT NULL,
+    cantidad DECIMAL(10,3) NOT NULL,
+    precio_unitario DECIMAL(10,2) DEFAULT 0.00,
+    total DECIMAL(12,2) GENERATED ALWAYS AS (cantidad * precio_unitario) STORED,
+    proveedor_id INT NULL,
+    motivo VARCHAR(255),
+    referencia VARCHAR(100),
+    notas TEXT,
+    usuario VARCHAR(100) DEFAULT 'sistema',
+    fecha_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (producto_id) REFERENCES productos(id),
+    FOREIGN KEY (proveedor_id) REFERENCES proveedores(id),
+    INDEX idx_producto (producto_id),
+    INDEX idx_fecha (fecha_movimiento),
+    INDEX idx_tipo (tipo_movimiento)
+);
+
+-- Tabla de compras
+CREATE TABLE compras (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    proveedor_id INT NOT NULL,
+    numero_factura VARCHAR(100),
+    fecha_compra DATE NOT NULL,
+    subtotal DECIMAL(12,2) DEFAULT 0.00,
+    impuestos DECIMAL(12,2) DEFAULT 0.00,
+    total DECIMAL(12,2) DEFAULT 0.00,
+    estado ENUM('pendiente', 'recibida', 'cancelada') DEFAULT 'pendiente',
+    notas TEXT,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proveedor_id) REFERENCES proveedores(id),
+    INDEX idx_proveedor (proveedor_id),
+    INDEX idx_fecha (fecha_compra),
+    INDEX idx_estado (estado)
+);
+
+-- Tabla de detalles de compra
+CREATE TABLE compras_detalle (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    compra_id INT NOT NULL,
+    mapeo_id INT NOT NULL,
+    cantidad DECIMAL(10,3) NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(12,2) GENERATED ALWAYS AS (cantidad * precio_unitario) STORED,
+    FOREIGN KEY (compra_id) REFERENCES compras(id) ON DELETE CASCADE,
+    FOREIGN KEY (mapeo_id) REFERENCES mapeos(id),
+    INDEX idx_compra (compra_id)
+);
+
+-- Insertar medidas básicas
+INSERT INTO medidas (nombre, simbolo, tipo, descripcion) VALUES
+('Kilogramos', 'kg', 'peso', 'Unidad de peso del Sistema Internacional'),
+('Gramos', 'g', 'peso', 'Unidad de peso - submúltiplo del kilogramo'),
+('Litros', 'l', 'volumen', 'Unidad de volumen del Sistema Internacional'),
+('Mililitros', 'ml', 'volumen', 'Unidad de volumen - submúltiplo del litro'),
+('Unidad', 'unidad', 'cantidad', 'Unidad individual de producto'),
+('Caja', 'caja', 'cantidad', 'Empaque o contenedor de productos'),
+('Paquete', 'paquete', 'cantidad', 'Agrupación de unidades'),
+('Docena', 'docena', 'cantidad', '12 unidades'),
+('Metros', 'm', 'longitud', 'Unidad de longitud del Sistema Internacional'),
+('Centímetros', 'cm', 'longitud', 'Unidad de longitud - submúltiplo del metro');
+
+-- Trigger para actualizar stock automáticamente
+DELIMITER //
+CREATE TRIGGER actualizar_stock_after_movimiento
+    AFTER INSERT ON movimientos_stock
+    FOR EACH ROW
+BEGIN
+    IF NEW.tipo_movimiento = 'entrada' THEN
+        UPDATE productos 
+        SET stock_actual = stock_actual + NEW.cantidad
+        WHERE id = NEW.producto_id;
+    ELSEIF NEW.tipo_movimiento = 'salida' THEN
+        UPDATE productos 
+        SET stock_actual = stock_actual - NEW.cantidad
+        WHERE id = NEW.producto_id;
+    ELSEIF NEW.tipo_movimiento = 'ajuste' THEN
+        UPDATE productos 
+        SET stock_actual = NEW.cantidad
+        WHERE id = NEW.producto_id;
+    END IF;
+END//
+DELIMITER ;
+
+-- Vista para resumen de productos con stock
+CREATE VIEW vista_productos_stock AS
+SELECT 
+    p.id,
+    p.codigo,
+    p.nombre,
+    p.categoria,
+    p.medida_simbolo,
+    m.nombre as medida_nombre,
+    p.stock_actual,
+    p.stock_minimo,
+    p.precio_referencia,
+    CASE 
+        WHEN p.stock_actual <= p.stock_minimo THEN 'BAJO'
+        WHEN p.stock_actual <= p.stock_minimo * 1.5 THEN 'MEDIO'
+        ELSE 'OK'
+    END as estado_stock,
+    p.activo,
+    p.fecha_registro
+FROM productos p
+JOIN medidas m ON p.medida_simbolo = m.simbolo
+WHERE p.activo = TRUE;
+
+-- Vista para resumen de mapeos
+CREATE VIEW vista_mapeos_completos AS
+SELECT 
+    m.id,
+    m.proveedor_id,
+    pr.nombre as proveedor_nombre,
+    m.producto_id,
+    p.nombre as producto_nombre,
+    p.codigo as producto_codigo,
+    m.nombre_proveedor,
+    m.codigo_proveedor,
+    m.factor_conversion,
+    m.precio_ultima_compra,
+    m.fecha_ultima_compra,
+    m.activo,
+    m.fecha_registro
+FROM mapeos m
+JOIN proveedores pr ON m.proveedor_id = pr.id
+JOIN productos p ON m.producto_id = p.id
+WHERE m.activo = TRUE AND pr.activo = TRUE AND p.activo = TRUE;
+
+-- Datos de ejemplo
+INSERT INTO proveedores (nombre, rif, telefono, email, direccion) VALUES
+('Distribuidora Central', 'J-12345678-0', '+58-212-1234567', 'ventas@distcentral.com', 'Av. Principal, Caracas'),
+('Mayorista del Norte', 'J-87654321-0', '+58-414-7654321', 'pedidos@maynorte.com', 'Zona Industrial, Valencia');
+
+INSERT INTO productos (nombre, codigo, categoria, medida_simbolo, descripcion, precio_referencia, stock_minimo) VALUES
+('Arroz Blanco Premium', 'ARR-001', 'alimentos', 'kg', 'Arroz blanco de grano largo, primera calidad', 2.50, 50.00),
+('Aceite de Cocina', 'ACE-001', 'alimentos', 'l', 'Aceite vegetal para cocinar', 3.75, 20.00),
+('Detergente en Polvo', 'DET-001', 'limpieza', 'kg', 'Detergente en polvo para ropa', 4.20, 10.00);
+
+INSERT INTO mapeos (proveedor_id, producto_id, nombre_proveedor, codigo_proveedor, factor_conversion, precio_ultima_compra) VALUES
+(1, 1, 'Arroz Diana 1kg', 'DIANA-ARR1', 1.0000, 2.30),
+(1, 2, 'Aceite Mazeite 1L', 'MAZE-ACE1L', 1.0000, 3.50),
+(2, 1, 'Arroz Premium Norte 1000g', 'ARR-PN-1000', 1.0000, 2.40);
+
+SELECT 'Base de datos creada exitosamente!' as mensaje;

@@ -1,0 +1,50 @@
+{
+  "name": "inventario-sistema",
+  "version": "1.0.0",
+  "description": "Sistema de Control de Compras y Stock con gestión de proveedores, productos y mapeo",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "setup-db": "mysql -u root -p < backend/database/schema.sql",
+    "reset-db": "mysql -u root -p -e 'DROP DATABASE IF EXISTS inventario_db; CREATE DATABASE inventario_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;' && npm run setup-db",
+    "create-views": "mysql -u root -p < create_views.sql",
+    "migrate-collation": "mysql -u root -p < migrate_collation.sql",
+    "update-view-descripcion": "mysql -u root -p < update_view_descripcion.sql",
+    "check-db": "mysql -u root -p < check_database.sql",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "inventory",
+    "stock",
+    "suppliers",
+    "products",
+    "nodejs",
+    "mysql"
+  ],
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.0",
+    "nodemailer": "^6.9.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuusuario/inventario-sistema.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tuusuario/inventario-sistema/issues"
+  },
+  "homepage": "https://github.com/tuusuario/inventario-sistema#readme"
+}

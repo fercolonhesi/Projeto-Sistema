@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3498db">
+    <meta name="description" content="Sistema de Control de Compras y Stock - Versión Móvil">
+    <link rel="manifest" href="manifest.json">
+    <title>📱 Sistema Inventario Móvil</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab.active {
+            background: #e3f2fd;
+            border-bottom-color: #2196f3;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 15px;
+        }
+
+        .module-content {
+            display: none;
+        }
+
+        .module-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 6px;
+            font-size: 11px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .badge-ok { background: #28a745; color: white; }
+        .badge-bajo { background: #dc3545; color: white; }
+        .badge-medio { background: #ffc107; color: black; }
+
+        .camera-btn {
+            background: #9b59b6;
+            margin-top: 10px;
+        }
+
+        .scan-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📱 Inventario Móvil</h1>
+        <p>Recepción de Mercancías</p>
+    </div>
+
+    <div class="alert alert-success" id="alert-success"></div>
+    <div class="alert alert-error" id="alert-error"></div>
+
+    <div class="nav-tabs">
+        <div class="nav-tab active" onclick="showModule('dashboard')">📊</div>
+        <div class="nav-tab" onclick="showModule('recepcion')">📦</div>
+        <div class="nav-tab" onclick="showModule('stock')">📈</div>
+        <div class="nav-tab" onclick="showModule('facturas')">📄</div>
+    </div>
+
+    <div class="content">
+        <!-- DASHBOARD MODULE -->
+        <div id="dashboard" class="module-content active">
+            <div class="card">
+                <h3>📊 Estado del Sistema</h3>
+                <div id="system-status">
+                    <p>Conectando...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚡ Acciones Rápidas</h3>
+                <button class="btn" onclick="showModule('recepcion')">📦 Nueva Recepción</button>
+                <button class="btn" onclick="showModule('stock')">📈 Ver Stock</button>
+                <button class="btn camera-btn" onclick="scanBarcode()">📷 Escanear Código</button>
+            </div>
+        </div>
+
+        <!-- RECEPCION MODULE -->
+        <div id="recepcion" class="module-content">
+            <div class="card">
+                <h3>📦 Recepción de Mercancías</h3>
+
+                <form id="form-recepcion">
+                    <div class="form-group">
+                        <label>Número de Factura</label>
+                        <input type="text" id="factura-numero" required placeholder="Ej: FAC-001-2024">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Proveedor</label>
+                        <select id="recepcion-proveedor" required>
+                            <option value="">Seleccionar proveedor</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Producto (Código de Barras)</label>
+                        <input type="text" id="recepcion-producto" placeholder="Escanear o ingresar código">
+                        <button type="button" class="btn camera-btn" onclick="scanBarcodeForProduct()">📷 Escanear</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cantidad Recibida</label>
+                        <input type="number" step="0.001" id="recepcion-cantidad" required placeholder="0.000">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Almacén de Destino</label>
+                        <select id="recepcion-almacen" required>
+                            <option value="">Seleccionar almacén</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Registrar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- STOCK MODULE -->
+        <div id="stock" class="module-content">
+            <div class="card">
+                <h3>📈 Consulta de Stock</h3>
+
+                <div class="form-group">
+                    <label>Buscar Producto</label>
+                    <input type="text" id="buscar-producto" placeholder="Nombre, código o barcode">
+                </div>
+
+                <div class="form-group">
+                    <label>Almacén</label>
+                    <select id="filtro-almacen">
+                        <option value="">Todos los almacenes</option>
+                    </select>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-stock-movil">
+                        <tr>
+                            <td colspan="3" class="text-center">Cargando stock...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FACTURAS MODULE -->
+        <div id="facturas" class="module-content">
+            <div class="card">
+                <h3>📄 Facturas Recientes</h3>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Proveedor</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-facturas-movil">
+                        <tr>
+                            <td colspan="3" class="text-center">Cargando facturas...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000'; // Cambiar según la IP del servidor
+        let currentData = {
+            productos: [],
+            almacenes: [],
+            proveedores: []
+        };
+
+        function showAlert(message, type = 'success') {
+            const alertElement = document.getElementById(`alert-${type}`);
+            alertElement.textContent = message;
+            alertElement.style.display = 'block';
+
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 3000);
+        }
+
+        function showModule(moduleId) {
+            document.querySelectorAll('.module-content').forEach(module => {
+                module.classList.remove('active');
+            });
+
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(moduleId).classList.add('active');
+            event.target.classList.add('active');
+
+            loadModuleData(moduleId);
+        }
+
+        function loadModuleData(moduleId) {
+            switch(moduleId) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'recepcion':
+                    loadRecepcionData();
+                    break;
+                case 'stock':
+                    loadStockMovil();
+                    break;
+                case 'facturas':
+                    loadFacturasMovil();
+                    break;
+            }
+        }
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const config = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (data) {
+                    config.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(`${API_BASE}/api${endpoint}`, config);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error en la petición');
+                }
+
+                return result;
+            } catch (error) {
+                console.error('Error en API:', error);
+                showAlert(error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function loadDashboard() {
+            try {
+                const data = await apiCall('/dashboard');
+                document.getElementById('system-status').innerHTML = `
+                    <p>✅ Conectado al servidor</p>
+                    <p>📦 ${data.productos} productos</p>
+                    <p>🏭 ${data.almacenes} almacenes</p>
+                    <p>📄 ${data.facturas_pendientes} facturas pendientes</p>
+                `;
+            } catch (error) {
+                document.getElementById('system-status').innerHTML = `
+                    <p>❌ Error de conexión</p>
+                    <p>Verifica la conexión al servidor</p>
+                `;
+            }
+        }
+
+        async function loadRecepcionData() {
+            try {
+                currentData.proveedores = await apiCall('/proveedores');
+                currentData.almacenes = await apiCall('/almacenes');
+                currentData.productos = await apiCall('/productos');
+
+                // Llenar selects
+                const proveedorSelect = document.getElementById('recepcion-proveedor');
+                proveedorSelect.innerHTML = '<option value="">Seleccionar proveedor</option>';
+                currentData.proveedores.forEach(p => {
+                    proveedorSelect.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+                });
+
+                const almacenSelect = document.getElementById('recepcion-almacen');
+                almacenSelect.innerHTML = '<option value="">Seleccionar almacén</option>';
+                currentData.almacenes.forEach(a => {
+                    almacenSelect.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+                });
+
+            } catch (error) {
+                showAlert('Error cargando datos', 'error');
+            }
+        }
+
+        async function loadStockMovil() {
+            try {
+                const productos = await apiCall('/productos');
+                const almacenes = await apiCall('/almacenes');
+
+                const almacenSelect = document.getElementById('filtro-almacen');
+                almacenSelect.innerHTML = '<option value="">Todos los almacenes</option>';
+                almacenes.forEach(a => {
+                    almacenSelect.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+                });
+
+                renderStockMovil(productos);
+            } catch (error) {
+                document.getElementById('tabla-stock-movil').innerHTML = `
+                    <tr><td colspan="3" class="text-center">Error cargando stock</td></tr>
+                `;
+            }
+        }
+
+        function renderStockMovil(productos = currentData.productos) {
+            const tbody = document.getElementById('tabla-stock-movil');
+            const filtroBusqueda = document.getElementById('buscar-producto').value.toLowerCase();
+            const filtroAlmacen = document.getElementById('filtro-almacen').value;
+
+            let productosFiltrados = productos.filter(p =>
+                p.nombre.toLowerCase().includes(filtroBusqueda) ||
+                p.codigo.toLowerCase().includes(filtroBusqueda) ||
+                (p.barcode && p.barcode.toLowerCase().includes(filtroBusqueda))
+            );
+
+            // Si hay filtro de almacén, obtener stock específico
+            if (filtroAlmacen) {
+                // En una implementación completa, aquí se haría una llamada API para obtener stock por almacén
+                // Por ahora, mostramos todos los productos
+            }
+
+            if (productosFiltrados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center">No se encontraron productos</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = productosFiltrados.map(producto => `
+                <tr>
+                    <td>${producto.nombre}<br><small>${producto.codigo}</small></td>
+                    <td>${producto.stock_actual || 0} ${producto.medida_simbolo}</td>
+                    <td><span class="badge badge-${producto.estado_stock.toLowerCase()}">${producto.estado_stock}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadFacturasMovil() {
+            try {
+                const facturas = await apiCall('/facturas');
+                const tbody = document.getElementById('tabla-facturas-movil');
+
+                if (facturas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No hay facturas</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = facturas.slice(0, 10).map(factura => `
+                    <tr>
+                        <td>${factura.numero_factura}</td>
+                        <td>${factura.proveedor_nombre}</td>
+                        <td><span class="badge ${getFacturaEstadoBadge(factura.estado)}">${factura.estado}</span></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                document.getElementById('tabla-facturas-movil').innerHTML = `
+                    <tr><td colspan="3" class="text-center">Error cargando facturas</td></tr>
+                `;
+            }
+        }
+
+        function getFacturaEstadoBadge(estado) {
+            const badges = {
+                'recibida': 'badge-medio',
+                'procesando': 'badge-medio',
+                'verificada': 'badge-ok',
+                'discrepancias': 'badge-bajo',
+                'aprobada': 'badge-ok'
+            };
+            return badges[estado] || 'badge-medio';
+        }
+
+        // Función para escanear códigos de barras (simulado)
+        function scanBarcode() {
+            // En una implementación real, usar la API de la cámara del dispositivo
+            const code = prompt('Ingrese el código de barras:');
+            if (code) {
+                showAlert(`Código escaneado: ${code}`);
+                // Aquí se podría buscar el producto por código
+            }
+        }
+
+        function scanBarcodeForProduct() {
+            const code = prompt('Escanee el código de barras del producto:');
+            if (code) {
+                document.getElementById('recepcion-producto').value = code;
+                // Buscar producto por código
+                const producto = currentData.productos.find(p => p.barcode === code || p.codigo === code);
+                if (producto) {
+                    showAlert(`Producto encontrado: ${producto.nombre}`);
+                } else {
+                    showAlert('Producto no encontrado', 'error');
+                }
+            }
+        }
+
+        // Event listeners
+        document.getElementById('form-recepcion').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                numero_factura: document.getElementById('factura-numero').value,
+                proveedor_id: document.getElementById('recepcion-proveedor').value,
+                fecha_emision: new Date().toISOString().split('T')[0],
+                detalles: [{
+                    mapeo_id: 1, // Simplificado - en producción buscar por producto
+                    cantidad: parseFloat(document.getElementById('recepcion-cantidad').value),
+                    precio_unitario: 0 // Simplificado
+                }]
+            };
+
+            try {
+                await apiCall('/facturas', 'POST', data);
+                showAlert('Recepción registrada exitosamente');
+                e.target.reset();
+            } catch (error) {
+                // Error ya mostrado
+            }
+        });
+
+        document.getElementById('buscar-producto').addEventListener('input', () => {
+            renderStockMovil(currentData.productos);
+        });
+
+        document.getElementById('filtro-almacen').addEventListener('change', () => {
+            renderStockMovil(currentData.productos);
+        });
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+
+        // PWA - Service Worker (opcional)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(error => console.log('SW registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>
